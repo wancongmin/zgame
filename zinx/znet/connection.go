@@ -2,11 +2,11 @@ package znet
 
 import (
 	"net"
-	"zinx/ziface"
+	"zinxsocket/ziface"
 	"fmt"
-	"io"
 	"errors"
 	"sync"
+	"github.com/gorilla/websocket"
 )
 
 //链接模块
@@ -14,7 +14,7 @@ type Connection struct {
 	//当前Conn属于哪个sever
 	TcpSever ziface.Iserver
 	//当前链接的socket TCP 套接字
-	Conn *net.TCPConn
+	Conn *websocket.Conn
 	//链接ID
 	ConnID uint32
 	//当前链接状态
@@ -35,7 +35,7 @@ type Connection struct {
 
 //初始化链接模块的方法
 
-func NewConnetion(sever ziface.Iserver,conn *net.TCPConn,connID uint32,msgHandler ziface.IMsgHandle) *Connection{
+func NewConnetion(sever ziface.Iserver,conn *websocket.Conn,connID uint32,msgHandler ziface.IMsgHandle) *Connection{
 	c:=&Connection{
 		TcpSever:sever,
 		Conn:conn,
@@ -56,29 +56,13 @@ func (c *Connection) StartReader(){
 	defer fmt.Println("connID=",c.ConnID,"Reader is exit,remote addr is",c.RemoteAddr().String())
 	defer c.Stop()
 	for{
-		//创建一个拆包解包过程
-		dp:=NewDataPack()
-		//读取客户端的Msg Head 二进制8个字节
-		headData:=make([]byte,dp.GetHeadLen())
-		if _,err:=io.ReadFull(c.GetTCPConnection(),headData);err!=nil{
-			fmt.Println("read msg head error",err)
-			break
-		}
-		//拆包，得到msgID 和 msgDatalen 放在msg消息中
-		msg,err:=dp.Unpack(headData)
+		_, data, err := c.Conn.ReadMessage()
 		if err!=nil{
-			fmt.Println("unpack error",err)
+			fmt.Println("read msg error",err)
 			break
 		}
-		//根据dataLen 再次读取Data 放在msg.Data中
-		var data []byte
-		if msg.GetMsgLen()>0{
-			data=make([]byte,msg.GetMsgLen())
-			if _,err:=io.ReadFull(c.GetTCPConnection(),data);err!=nil{
-				fmt.Println("read msg data error",err)
-				break
-			}
-		}
+		msg:=Message{}
+		msg.SetMsgId(1)
 		msg.SetData(data)
 		req:=Request{
 			conn:c,
@@ -112,7 +96,7 @@ func (c *Connection) StartWriter(){
 		select {
 		case data := <-c.smgChan:
 			//有数据要写给客户端
-			if _,err :=c.Conn.Write(data); err!=nil{
+			if err :=c.Conn.WriteMessage(websocket.TextMessage,data); err!=nil{
 				fmt.Println("Send data error", err)
 				return
 			}
@@ -145,7 +129,7 @@ func (c *Connection) Stop(){
 	close(c.smgChan)
 }
 //获取当前链接的绑定 socket conn
-func (c *Connection) GetTCPConnection() *net.TCPConn{
+func (c *Connection) GetTCPConnection() *websocket.Conn{
 	return c.Conn
 }
 //获取当前链接模块的链接ID
@@ -167,18 +151,18 @@ func (c *Connection) SendMsg(msgId uint32,data []byte) error {
 		return errors.New("Connection close when send msg")
 	}
 	//将data进行封包
-	dp:=NewDataPack()
-	binaryMsg,err:=dp.Pack(NewMsgPackage(msgId,data))
-
-	if err!=nil{
-		fmt.Println("Pack error msg id=",err)
-	}
+	//dp:=NewDataPack()
+	//binaryMsg,err:=dp.Pack(NewMsgPackage(msgId,data))
+	//
+	//if err!=nil{
+	//	fmt.Println("Pack error msg id=",err)
+	//}
 	//将数据发送客户端
 	//if _,err:=c.Conn.Write(binaryMsg);err!=nil {
 	//	fmt.Println("Write msg id=",msgId," erros:",err)
 	//	return err
 	//}
-	c.smgChan <-binaryMsg
+	c.smgChan <-data
 	return nil
 }
 

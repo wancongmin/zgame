@@ -4,6 +4,7 @@ import (
 	"zinxsocket/znet"
 	"fmt"
 	"zinxsocket/ziface"
+	"zinx/lib/config"
 )
 //ping test 自定义路由
 type PingRouter struct {
@@ -59,6 +60,7 @@ func DoConnectionLost(conn ziface.Iconnection)  {
 
 func main(){
 	//创建server句柄，使用zinx的api
+	config.InitConfig()                   //初始化本地配置文件 config.json
 	s:=znet.NewServer("zinx06")
 	s.AddRouter(1,&PingRouter{})
 	//s.AddRouter(1,&HolleRouter{})

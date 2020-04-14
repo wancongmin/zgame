@@ -1,7 +1,7 @@
 package config
 
 import (
-	"zinx/lib/exception"
+	"bangseller.com/lib/exception"
 	"encoding/json"
 	"io/ioutil"
 	"log"

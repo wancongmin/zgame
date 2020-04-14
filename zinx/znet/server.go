@@ -1,9 +1,10 @@
 package znet
 
 import (
-	"zinx/ziface"
+	"zinxsocket/ziface"
 	"fmt"
-	"net"
+	"net/http"
+	"github.com/gorilla/websocket"
 	"zinx/lib/config"
 )
 //iserver的接口实现，定义一个server的服务器模块
@@ -15,7 +16,7 @@ type Server struct {
 	//服务器监听的ip
 	IP string
 	//Port
-	Port int
+	Port string
 	//当前的server添加一个router
 	//Router ziface.IRouter
 	//当前server的消息管理模块，用来绑定MsgID和对应的处理业务api关系
@@ -30,47 +31,43 @@ type Server struct {
 
 //启动服务器
 func (s *Server) Start() {
-	fmt.Printf("start server listenner at IP:%s,Port:%d\n",s.IP,s.Port)
+	//fmt.Printf("start server listenner at IP:%s,Port:%d\n",s.IP,s.Port)
 	go func() {
 		//开启消息队列及worker工作池
 		s.MsgHandle.StartWorkerPoll()
 		// 获取一个tcp Addr
-		//fmt.Println(s.IPversion,fmt.Sprintf("%s:%d",s.IP,s.Port))
-		addr,err:=net.ResolveTCPAddr(s.IPversion,fmt.Sprintf("%s:%d",s.IP,s.Port))
-		if err!=nil{
-			fmt.Println("resolve tcp addr error:",err)
-			return
-		}
-		listenner,err:=net.ListenTCP(s.IPversion,addr)
-		if err!=nil{
-			fmt.Println("listen:",s.IPversion,"err:",err)
-			return
-		}
-		// 监听服务器地址
-		fmt.Println("start zinx server succ ",s.Name,"listening")
-		var cid uint32
-		cid=1
-		//阻塞等待客户连接，处理客户端连接业务(读写)
-		for{
-			//如果有客户端连接过来，阻塞会返回
-			conn,err:=listenner.AcceptTCP()
-			if err!=nil{
-				fmt.Println("Accept err",err)
-				continue
-			}
-			//设置最大连接个数的判断，如果超过最大连接，那么关闭此新的连接
-			if s.ConnMgr.Len()>=2{
-				//TODO 给客户端相应一个超出最大连接的错误包
-				conn.Close()
-				fmt.Println("====================>>>>>>>>>>>>>>>>connection max")
-				continue
-			}
-			dealConn:=NewConnetion(s,conn,cid,s.MsgHandle)
-			cid++
-			go dealConn.Start()
-		}
+
+		//addr,err:=net.ResolveTCPAddr(s.IPversion,fmt.Sprintf("%s:%d",s.IP,s.Port))
+		fmt.Println(fmt.Sprintf("%s:%d",s.IP,s.Port))
+		http.HandleFunc("/ws", s.wsPage)
+		http.ListenAndServe(":"+ s.Port, nil)
 	}()
 }
+
+func (s *Server) wsPage(res http.ResponseWriter, req *http.Request) {
+	var cid uint32
+	cid=1
+	//如果有客户端连接过来，阻塞会返回
+	//conn,err:=listenner.AcceptTCP()
+	conn, err := (&websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}).Upgrade(res, req, nil)
+
+	if err!=nil{
+		fmt.Println("Accept err",err)
+		return
+	}
+	//设置最大连接个数的判断，如果超过最大连接，那么关闭此新的连接
+	if s.ConnMgr.Len()>=2{
+		//TODO 给客户端相应一个超出最大连接的错误包
+		conn.Close()
+		fmt.Println("====================>>>>>>>>>>>>>>>>connection max")
+		return
+	}
+	dealConn:=NewConnetion(s,conn,cid,s.MsgHandle)
+	cid++
+	go dealConn.Start()
+
+}
+
 
 func (s *Server) Stop() {
 	//将一些服务器的资源，状态或者一些已经开辟的链接信息，进行停止回收
@@ -98,12 +95,12 @@ func (s *Server) GetConnMgr() ziface.IConnManager {
 //初始化Server模块方法
 var IPversion string = config.GetConfig("IPversion","tcp4")
 var IP string = config.GetConfig("IP","0.0.0.0")
-var Port int = config.GetIntConfig("Port",8091)
+var Port string = config.GetConfig("Port","8091")
 func NewServer(name string) ziface.Iserver  {
 	s:=&Server{
 		Name:name,
 		IPversion:IPversion,
-		IP:IP,
+		IP:"0.0.0.0",
 		Port:Port,
 		MsgHandle:NewMsgHandle(),
 		ConnMgr:NewConnMamager(),

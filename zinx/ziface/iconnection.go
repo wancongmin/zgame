@@ -2,6 +2,7 @@ package ziface
 
 import (
 	"net"
+	"github.com/gorilla/websocket"
 )
 
 type Iconnection interface {
@@ -10,7 +11,7 @@ type Iconnection interface {
 	//停止链接 结束当前的链接工作
 	Stop()
 	//获取当前链接的绑定 socket conn
-	GetTCPConnection() *net.TCPConn
+	GetTCPConnection() *websocket.Conn
 	//获取当前链接模块的链接ID
 	GetConnID() uint32
 	//获取远程客户端的TCP  状态 IP port

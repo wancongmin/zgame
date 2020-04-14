@@ -1,12 +1,12 @@
 package znet
 
-import "zinx/ziface"
+import "zinxsocket/ziface"
 
 type Request struct {
 	//已经和客户端建立好的链接
 	conn ziface.Iconnection
 	//客户端请求的数据
-	msg ziface.IMessage
+	msg Message
 }
 //得到当前链接
 func (r *Request) GetConnection() ziface.Iconnection {

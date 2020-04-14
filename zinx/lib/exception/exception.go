@@ -1,7 +1,7 @@
 package exception
 
 import (
-	"zinx/lib/log"
+	"bangseller.com/lib/log"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -9,8 +9,8 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"zinx/lib/msg"
-	resp "zinx/lib/response"
+	"bangseller.com/lib/msg"
+	resp "bangseller.com/lib/response"
 )
 
 // 显示异常
