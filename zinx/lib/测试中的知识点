@@ -1,0 +1,20 @@
+1、关于函数参数中的指针传递，函数内初始化的指针地址不能返回给调用的程序，函数内只能改变其指针指向的值
+如：func f(p *int){
+    i := 10
+    p = &i  //不能把值10返回给调用程序,这点与PHP函数不一致
+    *p = i  //调用程序中 p = 10
+}
+
+2、golang 中的时区，golang中没有像 PHP 一样的统一设置时区函数，系统默认的时间根据操作系统设置的时区获得
+    所以在运行golang的机器上设置为中国时区
+
+3、	d,_ := time.ParseDuration("1h1m"), "-1h2m" 可以
+    这种，不能在中间出现负号，如  1h-2m 不行
+
+4、Golang MySQL 时区的坑 https://studygolang.com/articles/17313?fr=sidebar
+    问题
+    想要把 time.Time 直接存储入库，需要开启解析时间parseTime
+    db, err := sql.Open("mysql", "user:password@/dbname?charset=utf8mb4&parseTime=true")
+    golang 程序里 time.Time 为 2018-12-24 18:00:00 CST
+    转为 UTC 存储到 mysql 2018-12-24 10:00:00
+    golang 从 mysql 获取解析成 time.Time 为 2018-12-24 10:00:00 UTC

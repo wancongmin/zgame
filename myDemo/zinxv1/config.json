@@ -1,0 +1,17 @@
+{
+   "Port":8091,
+   "IPversion":"tcp4",
+   "IP":"0.0.0.0",
+   "WorkerPoolSize":5,
+   "Requestcount":10,
+	"Database": {
+		"DriverName": "mysql",
+		"DataSourceName": "root:@tcp(127.0.0.1:3306)/bangseller01?charset=utf8&loc=Local",
+		"MaxOpenConns": 10
+	},
+	"Redis": {
+		"Addr": "localhost:6399",
+		"Password": "",
+		"DB": 0
+	}
+}
